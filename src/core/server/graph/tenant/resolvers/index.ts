@@ -38,6 +38,7 @@ import { Query } from "./Query";
 import { RecentCommentHistory } from "./RecentCommentHistory";
 import { RejectCommentPayload } from "./RejectCommentPayload";
 import { SSOAuthIntegration } from "./SSOAuthIntegration";
+import { SSOKey } from "./SSOKey";
 import { Story } from "./Story";
 import { StorySettings } from "./StorySettings";
 import { Subscription } from "./Subscription";
@@ -86,6 +87,7 @@ const Resolvers: GQLResolver = {
   RecentCommentHistory,
   RejectCommentPayload,
   SSOAuthIntegration,
+  SSOKey,
   Story,
   StorySettings,
   Subscription,

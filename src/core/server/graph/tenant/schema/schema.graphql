@@ -65,6 +65,13 @@ rate enforces a rate limit on requests made by the user.
 """
 directive @rate(max: Int = 1, seconds: Int!, key: String) on FIELD_DEFINITION
 
+"""
+deprecated indicates that a field should not be used in the future.
+"""
+directive @deprecated(
+  reason: String = "No longer supported"
+) on FIELD_DEFINITION | ENUM_VALUE
+
 ################################################################################
 ## Custom Scalar Types
 ################################################################################
@@ -456,6 +463,40 @@ type LocalAuthIntegration {
 ## SSOAuthIntegration
 ##########################
 
+type SSOKey {
+  """
+  kid is the identifier for the key used when verifying tokens issued by the
+  provider.
+  """
+  kid: String!
+
+  """
+  secret is the actual underlying secret used to verify the tokens with.
+  """
+  secret: String!
+
+  """
+  createdAt is the date that the key was created at.
+  """
+  createdAt: Time!
+
+  """
+  lastUsedAt is the time that the
+  """
+  lastUsedAt: Time
+
+  """
+  rotatedAt is the time that the token was rotated out.
+  """
+  rotatedAt: Time
+
+  """
+  inactiveAt is the date that the token can no longer be used to validate
+  tokens.
+  """
+  inactiveAt: Time
+}
+
 """
 SSOAuthIntegration is an AuthIntegration that provides a secret to the admins
 of a tenant, where they can sign a SSO payload with it to provide to the
@@ -478,14 +519,23 @@ type SSOAuthIntegration {
   targetFilter: AuthenticationTargetFilter!
 
   """
+  keys are the different SSOKey's used by this Tenant.
+  """
+  keys: [SSOKey!]! @auth(roles: [ADMIN])
+
+  """
   key is the secret that is used to sign tokens.
   """
-  key: String @auth(roles: [ADMIN])
+  key: String
+    @auth(roles: [ADMIN])
+    @deprecated(reason: "field is deprecated in favour of `keys`")
 
   """
   keyGeneratedAt is the Time that the key was effective from.
   """
-  keyGeneratedAt: Time @auth(roles: [ADMIN])
+  keyGeneratedAt: Time
+    @auth(roles: [ADMIN])
+    @deprecated(reason: "field is deprecated in favour of `keys`")
 }
 
 ##########################
@@ -5125,6 +5175,92 @@ type RequestUserCommentsDownloadPayload {
   archiveURL: String!
 }
 
+#########################
+## rotateSSOKey
+#########################
+
+input RotateSSOKeyInput {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  inactiveIn is the number of seconds that the current active SSOKey should be
+  kept active (allow signed tokens signed with this secret) before rejecting
+  them.
+  """
+  inactiveIn: Int!
+}
+
+type RotateSSOKeyPayload {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  settings is the Settings that the SSO key was regenerated on.
+  """
+  settings: Settings
+}
+
+#########################
+## deactivateSSOKey
+#########################
+
+input DeactivateSSOKeyInput {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  kid is the ID of the SSOKey being deactivated.
+  """
+  kid: ID!
+}
+
+type DeactivateSSOKeyPayload {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  settings is the Settings that the SSO key was regenerated on.
+  """
+  settings: Settings
+}
+
+#########################
+## deleteSSOKey
+#########################
+
+input DeleteSSOKeyInput {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  kid is the ID of the SSOKey being deleted.
+  """
+  kid: ID!
+}
+
+type DeleteSSOKeyPayload {
+  """
+  clientMutationId is required for Relay support.
+  """
+  clientMutationId: String!
+
+  """
+  settings is the Settings that the SSO key was regenerated on.
+  """
+  settings: Settings
+}
+
 ##################
 ## Mutation
 ##################
@@ -5162,6 +5298,25 @@ type Mutation {
   invalidate any existing user sessions.
   """
   regenerateSSOKey(input: RegenerateSSOKeyInput!): RegenerateSSOKeyPayload!
+    @auth(roles: [ADMIN])
+    @deprecated(reason: "deprecated in favour of `rotateSSOKey`")
+
+  """
+  rotateSSOKey can be used to rotate a given active SSOKey.
+  """
+  rotateSSOKey(input: RotateSSOKeyInput!): RotateSSOKeyPayload!
+    @auth(roles: [ADMIN])
+
+  """
+  deactivateSSOKey will deactivate a given deactivated SSOKey.
+  """
+  deactivateSSOKey(input: DeactivateSSOKeyInput!): DeactivateSSOKeyPayload!
+    @auth(roles: [ADMIN])
+
+  """
+  deleteSSOKey will delete a given inactive SSOKey.
+  """
+  deleteSSOKey(input: DeleteSSOKeyInput!): DeleteSSOKeyPayload!
     @auth(roles: [ADMIN])
 
   """
