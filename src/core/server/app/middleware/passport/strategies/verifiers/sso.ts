@@ -177,8 +177,7 @@ const updateLastUsedAtKID = throttle(
     }
   },
   // Only let this update the last used time stamp every minute.
-  // 60 * 1000
-  1 * 1000
+  60 * 1000
 );
 
 export interface SSOVerifierOptions {
