@@ -9,8 +9,7 @@ import {
   CoralError,
   StoryNotFoundError,
 } from "coral-server/errors";
-import { GQLTAG } from "coral-server/graph/tenant/schema/__generated__/types";
-import { Publisher } from "coral-server/graph/tenant/subscriptions/publisher";
+import { CoralEventPublisherBroker } from "coral-server/events/publisher";
 import logger from "coral-server/logger";
 import {
   encodeActionCounts,
@@ -49,6 +48,8 @@ import {
 import { AugmentedRedis } from "coral-server/services/redis";
 import { Request } from "coral-server/types/express";
 
+import { GQLTAG } from "coral-server/graph/tenant/schema/__generated__/types";
+
 import { updateUserLastCommentID } from "../users";
 import { addCommentActions, CreateAction } from "./actions";
 import { calculateCounts, calculateCountsDiff } from "./moderation/counts";
@@ -63,7 +64,7 @@ export async function create(
   mongo: Db,
   redis: AugmentedRedis,
   config: Config,
-  publish: Publisher,
+  broker: CoralEventPublisherBroker,
   tenant: Tenant,
   author: User,
   input: CreateComment,
@@ -231,16 +232,16 @@ export async function create(
   const moderationQueue = calculateCounts(comment);
 
   // Publish changes.
-  publishModerationQueueChanges(publish, moderationQueue, comment);
+  publishModerationQueueChanges(broker, moderationQueue, comment);
 
   // If this is a reply, publish it.
   if (input.parentID) {
-    publishCommentReplyCreated(publish, comment);
+    publishCommentReplyCreated(broker, comment);
   }
 
   // If this comment is visible (and not a reply), publish it.
   if (!input.parentID && hasPublishedStatus(comment)) {
-    publishCommentCreated(publish, comment);
+    publishCommentCreated(broker, comment);
   }
 
   // Compile the changes we want to apply to the story counts.
@@ -269,7 +270,7 @@ export async function edit(
   mongo: Db,
   redis: AugmentedRedis,
   config: Config,
-  publish: Publisher,
+  broker: CoralEventPublisherBroker,
   tenant: Tenant,
   author: User,
   input: EditComment,
@@ -431,9 +432,9 @@ export async function edit(
   await updateStoryCounts(mongo, redis, tenant.id, story.id, storyCounts);
 
   // Publish changes.
-  publishModerationQueueChanges(publish, moderationQueue, editedComment);
+  publishModerationQueueChanges(broker, moderationQueue, editedComment);
   publishCommentStatusChanges(
-    publish,
+    broker,
     oldComment.status,
     editedComment.status,
     editedComment.id,

@@ -10,13 +10,13 @@ import {
 
 export const Actions = (ctx: TenantContext) => ({
   approveComment: (input: GQLApproveCommentInput) =>
-    approve(ctx.mongo, ctx.redis, ctx.publisher, ctx.tenant, {
+    approve(ctx.mongo, ctx.redis, ctx.broker, ctx.tenant, {
       commentID: input.commentID,
       commentRevisionID: input.commentRevisionID,
       moderatorID: ctx.user!.id,
     }),
   rejectComment: (input: GQLRejectCommentInput) =>
-    reject(ctx.mongo, ctx.redis, ctx.publisher, ctx.tenant, {
+    reject(ctx.mongo, ctx.redis, ctx.broker, ctx.tenant, {
       commentID: input.commentID,
       commentRevisionID: input.commentRevisionID,
       moderatorID: ctx.user!.id,

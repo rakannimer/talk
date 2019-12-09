@@ -45,7 +45,7 @@ export const Comments = (ctx: TenantContext) => ({
         ctx.mongo,
         ctx.redis,
         ctx.config,
-        ctx.publisher,
+        ctx.broker,
         ctx.tenant,
         ctx.user!,
         { authorID: ctx.user!.id, ...comment },
@@ -68,7 +68,7 @@ export const Comments = (ctx: TenantContext) => ({
         ctx.mongo,
         ctx.redis,
         ctx.config,
-        ctx.publisher,
+        ctx.broker,
         ctx.tenant,
         ctx.user!,
         {
@@ -92,7 +92,7 @@ export const Comments = (ctx: TenantContext) => ({
     createReaction(
       ctx.mongo,
       ctx.redis,
-      ctx.publisher,
+      ctx.broker,
       ctx.tenant,
       ctx.user!,
       {
@@ -113,7 +113,7 @@ export const Comments = (ctx: TenantContext) => ({
     createDontAgree(
       ctx.mongo,
       ctx.redis,
-      ctx.publisher,
+      ctx.broker,
       ctx.tenant,
       ctx.user!,
       {
@@ -140,7 +140,7 @@ export const Comments = (ctx: TenantContext) => ({
     createFlag(
       ctx.mongo,
       ctx.redis,
-      ctx.publisher,
+      ctx.broker,
       ctx.tenant,
       ctx.user!,
       {
@@ -170,7 +170,7 @@ export const Comments = (ctx: TenantContext) => ({
     )
       .then(comment =>
         comment.status !== GQLCOMMENT_STATUS.APPROVED
-          ? approve(ctx.mongo, ctx.redis, ctx.publisher, ctx.tenant, {
+          ? approve(ctx.mongo, ctx.redis, ctx.broker, ctx.tenant, {
               commentID,
               commentRevisionID,
               moderatorID: ctx.user!.id,
@@ -179,7 +179,7 @@ export const Comments = (ctx: TenantContext) => ({
       )
       .then(comment => {
         // Publish that the comment was featured.
-        publishCommentFeatured(ctx.publisher, comment);
+        publishCommentFeatured(ctx.broker, comment);
 
         // Return it to the next step.
         return comment;

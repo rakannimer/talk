@@ -19,7 +19,7 @@ export type GraphMiddlewareOptions = Pick<
   | "pubsub"
   | "tenantCache"
   | "metrics"
-  | "notifierQueue"
+  | "broker"
 >;
 
 export const graphQLHandler = ({

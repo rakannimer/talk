@@ -2,8 +2,7 @@ import { Db } from "mongodb";
 
 import { Omit } from "coral-common/types";
 import { CommentNotFoundError, StoryNotFoundError } from "coral-server/errors";
-import { GQLCOMMENT_STATUS } from "coral-server/graph/tenant/schema/__generated__/types";
-import { Publisher } from "coral-server/graph/tenant/subscriptions/publisher";
+import { CoralEventPublisherBroker } from "coral-server/events/publisher";
 import logger from "coral-server/logger";
 import {
   createCommentModerationAction,
@@ -19,6 +18,8 @@ import {
 } from "coral-server/services/events";
 import { AugmentedRedis } from "coral-server/services/redis";
 
+import { GQLCOMMENT_STATUS } from "coral-server/graph/tenant/schema/__generated__/types";
+
 import { calculateCountsDiff } from "./counts";
 
 export type Moderate = Omit<CreateCommentModerationActionInput, "status">;
@@ -28,7 +29,7 @@ const moderate = (
 ) => async (
   mongo: Db,
   redis: AugmentedRedis,
-  publish: Publisher,
+  broker: CoralEventPublisherBroker,
   tenant: Tenant,
   input: Moderate
 ) => {
@@ -107,9 +108,9 @@ const moderate = (
   }
 
   // Publish changes.
-  publishModerationQueueChanges(publish, moderationQueue, result.comment);
+  publishModerationQueueChanges(broker, moderationQueue, result.comment);
   publishCommentStatusChanges(
-    publish,
+    broker,
     result.oldStatus,
     status,
     result.comment.id,
@@ -121,7 +122,7 @@ const moderate = (
     ) &&
     status === "APPROVED"
   ) {
-    publishCommentReleased(publish, result.comment);
+    publishCommentReleased(broker, result.comment);
   }
 
   log.trace({ oldStatus: result.oldStatus }, "adjusted story comment counts");

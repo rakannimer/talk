@@ -1,18 +1,15 @@
+import CoralEventListenerBroker, {
+  CoralEventPublisherBroker,
+} from "coral-server/events/publisher";
 import CommonContext, {
   CommonContextOptions,
 } from "coral-server/graph/common/context";
-import {
-  createPublisher,
-  Publisher,
-} from "coral-server/graph/tenant/subscriptions/publisher";
 import logger from "coral-server/logger";
 import { Tenant } from "coral-server/models/tenant";
 import { User } from "coral-server/models/user";
 import { MailerQueue } from "coral-server/queue/tasks/mailer";
-import { NotifierQueue } from "coral-server/queue/tasks/notifier";
 import { ScraperQueue } from "coral-server/queue/tasks/scraper";
 import { JWTSigningConfig } from "coral-server/services/jwt";
-import createSlackPublisher from "coral-server/services/slack/publisher";
 import TenantCache from "coral-server/services/tenant/cache";
 
 import loaders from "./loaders";
@@ -22,29 +19,29 @@ export interface TenantContextOptions extends CommonContextOptions {
   tenant: Tenant;
   tenantCache: TenantCache;
   mailerQueue: MailerQueue;
-  notifierQueue: NotifierQueue;
   scraperQueue: ScraperQueue;
   signingConfig?: JWTSigningConfig;
   clientID?: string;
+  broker: CoralEventListenerBroker;
 }
 
 export default class TenantContext extends CommonContext {
   public readonly tenant: Tenant;
   public readonly tenantCache: TenantCache;
 
-  public readonly mailerQueue: MailerQueue;
-  public readonly scraperQueue: ScraperQueue;
-  public readonly publisher: Publisher;
-  public readonly user?: User;
-  public readonly signingConfig?: JWTSigningConfig;
+  public readonly broker: CoralEventPublisherBroker;
   public readonly clientID?: string;
   public readonly loaders: ReturnType<typeof loaders>;
+  public readonly mailerQueue: MailerQueue;
   public readonly mutators: ReturnType<typeof mutators>;
+  public readonly scraperQueue: ScraperQueue;
+  public readonly signingConfig?: JWTSigningConfig;
+  public readonly user?: User;
 
   constructor({
     tenant,
     logger: log = logger,
-    notifierQueue,
+    broker,
     ...options
   }: TenantContextOptions) {
     super({
@@ -59,17 +56,8 @@ export default class TenantContext extends CommonContext {
     this.mailerQueue = options.mailerQueue;
     this.signingConfig = options.signingConfig;
     this.clientID = options.clientID;
-    this.publisher = createPublisher({
-      pubsub: this.pubsub,
-      slackPublisher: createSlackPublisher(
-        this.mongo,
-        this.config,
-        this.tenant
-      ),
-      notifierQueue,
-      tenantID: this.tenant.id,
-      clientID: this.clientID,
-    });
+
+    this.broker = broker.instance(this);
     this.loaders = loaders(this);
     this.mutators = mutators(this);
   }
