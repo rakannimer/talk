@@ -31,6 +31,7 @@ export const Stories = (ctx: TenantContext) => ({
       create(
         ctx.mongo,
         ctx.tenant,
+        ctx.broker,
         ctx.config,
         input.story.id,
         input.story.url,

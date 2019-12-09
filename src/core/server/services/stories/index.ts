@@ -3,6 +3,8 @@ import { Db } from "mongodb";
 
 import { Config } from "coral-server/config";
 import { StoryURLInvalidError } from "coral-server/errors";
+import { StoryCreatedCoralEvent } from "coral-server/events/events";
+import { CoralEventPublisherBroker } from "coral-server/events/publisher";
 import logger from "coral-server/logger";
 import {
   countTotalActionCounts,
@@ -64,6 +66,7 @@ export type FindOrCreateStory = FindOrCreateStoryInput;
 export async function findOrCreate(
   mongo: Db,
   tenant: Tenant,
+  broker: CoralEventPublisherBroker,
   input: FindOrCreateStory,
   scraper: ScraperQueue,
   now = new Date()
@@ -77,9 +80,21 @@ export async function findOrCreate(
     });
   }
 
-  const story = await findOrCreateStory(mongo, tenant.id, input, now);
+  const { story, wasUpserted } = await findOrCreateStory(
+    mongo,
+    tenant.id,
+    input,
+    now
+  );
   if (!story) {
     return null;
+  }
+
+  if (wasUpserted) {
+    StoryCreatedCoralEvent.publish(broker, {
+      storyID: story.id,
+      storyURL: story.url,
+    });
   }
 
   if (tenant.stories.scraping.enabled && !story.metadata && !story.scrapedAt) {
@@ -164,6 +179,7 @@ export type CreateStory = CreateStoryInput;
 export async function create(
   mongo: Db,
   tenant: Tenant,
+  broker: CoralEventPublisherBroker,
   config: Config,
   storyID: string,
   storyURL: string,
@@ -185,7 +201,7 @@ export async function create(
   }
 
   // Create the story in the database.
-  let newStory = await createStory(
+  let story = await createStory(
     mongo,
     tenant.id,
     storyID,
@@ -196,10 +212,15 @@ export async function create(
   if (!metadata && tenant.stories.scraping.enabled) {
     // If the scraper has not scraped this story and story metadata was not
     // provided, we need to scrape it now!
-    newStory = await scrape(mongo, config, tenant.id, newStory.id, storyURL);
+    story = await scrape(mongo, config, tenant.id, story.id, storyURL);
   }
 
-  return newStory;
+  StoryCreatedCoralEvent.publish(broker, {
+    storyID: story.id,
+    storyURL: story.url,
+  });
+
+  return story;
 }
 
 export type UpdateStory = UpdateStoryInput;

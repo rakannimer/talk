@@ -82,27 +82,30 @@ export interface UpsertStoryInput {
   url: string;
 }
 
+export interface UpsertStoryResult {
+  story: Story;
+  wasUpserted: boolean;
+}
+
 export async function upsertStory(
   mongo: Db,
   tenantID: string,
   { id = uuid.v4(), url }: UpsertStoryInput,
   now = new Date()
-) {
+): Promise<UpsertStoryResult> {
   // Create the story, optionally sourcing the id from the input, additionally
   // porting in the tenantID.
-  const update: { $setOnInsert: Story } = {
-    $setOnInsert: {
-      id,
-      url,
-      tenantID,
-      createdAt: now,
-      commentCounts: {
-        action: {},
-        status: createEmptyCommentStatusCounts(),
-        moderationQueue: createEmptyCommentModerationQueueCounts(),
-      },
-      settings: {},
+  const story: Story = {
+    id,
+    url,
+    tenantID,
+    createdAt: now,
+    commentCounts: {
+      action: {},
+      status: createEmptyCommentStatusCounts(),
+      moderationQueue: createEmptyCommentModerationQueueCounts(),
     },
+    settings: {},
   };
 
   try {
@@ -113,18 +116,26 @@ export async function upsertStory(
         url,
         tenantID,
       },
-      update,
+      { $setOnInsert: story },
       {
         // Create the object if it doesn't already exist.
         upsert: true,
 
-        // False to return the updated document instead of the original
-        // document.
-        returnOriginal: false,
+        // True to return the original document instead of the updated document.
+        // This will ensure that when an upsert operation adds a new Story, it
+        // should return null.
+        returnOriginal: true,
       }
     );
 
-    return result.value || null;
+    return {
+      // The story will either be found (via `result.value`) or upserted (via
+      // `story`).
+      story: result.value || story,
+
+      // The story was upserted if the value isn't provided.
+      wasUpserted: !result.value,
+    };
   } catch (err) {
     // Evaluate the error, if it is in regards to violating the unique index,
     // then return a duplicate Story error.
@@ -164,12 +175,17 @@ export interface FindOrCreateStoryInput {
   url?: string;
 }
 
+export interface FindOrCreateStoryResult {
+  story: Story | null;
+  wasUpserted: boolean;
+}
+
 export async function findOrCreateStory(
   mongo: Db,
   tenantID: string,
   { id, url }: FindOrCreateStoryInput,
   now = new Date()
-) {
+): Promise<FindOrCreateStoryResult> {
   if (id) {
     if (url) {
       // The URL was specified, this is an upsert operation.
@@ -185,7 +201,13 @@ export async function findOrCreateStory(
     }
 
     // The URL was not specified, this is a lookup operation.
-    return retrieveStory(mongo, tenantID, id);
+    const story = await retrieveStory(mongo, tenantID, id);
+
+    // Return the result object.
+    return {
+      story,
+      wasUpserted: false,
+    };
   }
 
   // The ID was not specified, this is an upsert operation. Check to see that
