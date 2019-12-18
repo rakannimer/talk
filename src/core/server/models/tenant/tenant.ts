@@ -175,6 +175,7 @@ export async function createTenant(
       perspective: {
         enabled: false,
         doNotStore: true,
+        sendFeedback: false,
       },
     },
     reaction: getDefaultReactionConfiguration(bundle),

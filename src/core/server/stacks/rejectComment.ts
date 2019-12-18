@@ -6,6 +6,7 @@ import { hasTag } from "coral-server/models/comment";
 import { Tenant } from "coral-server/models/tenant";
 import { removeTag } from "coral-server/services/comments";
 import { reject } from "coral-server/services/comments/moderation";
+import { notifyPerspectiveModerationDecision } from "coral-server/services/perspective";
 import { AugmentedRedis } from "coral-server/services/redis";
 
 import {
@@ -70,6 +71,14 @@ const rejectComment = async (
   const comment = hasTag(result.comment, GQLTAG.FEATURED)
     ? await removeTag(mongo, tenant, commentID, GQLTAG.FEATURED)
     : result.comment;
+
+  notifyPerspectiveModerationDecision(
+    mongo,
+    tenant.domain,
+    tenant.integrations.perspective,
+    result.comment,
+    GQLCOMMENT_STATUS.REJECTED
+  );
 
   return comment;
 };
