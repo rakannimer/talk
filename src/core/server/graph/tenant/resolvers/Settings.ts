@@ -3,6 +3,7 @@ import { Tenant } from "coral-server/models/tenant";
 import {
   GQLFEATURE_FLAG,
   GQLSettingsTypeResolver,
+  GQLWEBHOOK_EVENT_NAME,
 } from "coral-server/graph/tenant/schema/__generated__/types";
 
 const filterValidFeatureFlags = () => {
@@ -18,4 +19,5 @@ export const Settings: GQLSettingsTypeResolver<Tenant> = {
   slack: ({ slack = {} }) => slack,
   featureFlags: ({ featureFlags = [] }) =>
     featureFlags.filter(filterValidFeatureFlags()),
+  webhookEvents: () => Object.values(GQLWEBHOOK_EVENT_NAME),
 };

@@ -11,11 +11,13 @@ import ConfigureRoute from "./routes/Configure";
 import {
   AdvancedConfigRoute,
   AuthConfigRoute,
+  ConfigureWebhookRoute,
   EmailConfigRoute,
   GeneralConfigRoute,
   ModerationConfigRoute,
   OrganizationConfigRoute,
   SlackConfigRoute,
+  WebhooksConfigRoute,
   WordListConfigRoute,
 } from "./routes/Configure/sections";
 import ForgotPasswordRoute from "./routes/ForgotPassword";
@@ -77,6 +79,11 @@ export default makeRouteConfig(
             <Route path="advanced" {...AdvancedConfigRoute.routeConfig} />
             <Route path="email" {...EmailConfigRoute.routeConfig} />
             <Route path="slack" {...SlackConfigRoute.routeConfig} />
+            <Route path="webhooks" {...WebhooksConfigRoute.routeConfig} />
+            <Route
+              path="webhooks/:webhookEndpointID"
+              {...ConfigureWebhookRoute.routeConfig}
+            />
           </Route>
         </Route>
       </Route>
