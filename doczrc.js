@@ -22,6 +22,9 @@ module.exports = {
   typescript: true,
   host: process.env.HOST || "0.0.0.0",
   port: parseInt(process.env.DOCZ_PORT, 10) || 3030,
+  docgenConfig: {
+    searchPath: "./src/core/client/ui/",
+  },
   codeSandbox: false, // Too large to create code sandboxes..
   modifyBundlerConfig: config => {
     config.entry.app.push(
